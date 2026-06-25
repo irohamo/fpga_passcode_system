@@ -1,0 +1,6 @@
+build/
+auth.log
+*.o
+*.so
+*.dSYM/
+.DS_Store
