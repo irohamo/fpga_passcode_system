@@ -1,15 +1,23 @@
 module passcode (
     input  wire        clk,
     input  wire        rst_n,
+    input  wire [31:0] command,
 
-    input  wire [3:0]  row,   // 
-    output reg  [3:0]  col,   // 
+    input  wire [3:0]  row,
+    output reg  [3:0]  col,
 
     output reg  [4:0]  status,
+    output wire [31:0] status_raw,
     output reg  [3:0]  led
 );
 
+    // command
+    localparam CMD_NONE            = 32'd0;
+    localparam CMD_AUTH            = 32'd1;
+    localparam CMD_CHANGE_PASSCODE = 32'd2;
+
     // status
+    localparam WAITING_COMMANDS   = 5'd0;
     localparam INPUT_PASSCODE     = 5'd1;
     localparam AUTH_SUCCESS       = 5'd2;
     localparam AUTH_FAIL          = 5'd3;
@@ -48,6 +56,8 @@ module passcode (
     localparam DEBOUNCE     = 3'd1;
     localparam OUTPUT_KEY   = 3'd2;
     localparam WAIT_RELEASE = 3'd3;
+
+    assign status_raw = {16'd0, 5'd0, digit_count, 3'd0, status};
 
     // =========================
     // Keypad scan + debounce
@@ -162,20 +172,40 @@ module passcode (
     // Passcode control
     // =========================
     always @(posedge clk or negedge rst_n) begin
-	 led<= key_value;//keyvalue test  
         if (!rst_n) begin
             stored_passcode <= 16'd1234;
             input_passcode  <= 16'd0;
             digit_count     <= 3'd0;
-            status          <= INPUT_PASSCODE;
+            status          <= WAITING_COMMANDS;
         end else begin
-            if (key_valid) begin
+            if (status == WAITING_COMMANDS) begin
+                input_passcode <= 16'd0;
+                digit_count <= 3'd0;
+
+                if (command == CMD_AUTH) begin
+                    status <= INPUT_PASSCODE;
+                end else if (command == CMD_CHANGE_PASSCODE) begin
+                    status <= CURRENT_PASSCODE;
+                end
+            end else if ((status == AUTH_SUCCESS ||
+                          status == AUTH_FAIL ||
+                          status == CHANGE_SUCCESS ||
+                          status == CHANGE_FAIL ||
+                          status == PASSCODE_ERROR) &&
+                         command == CMD_NONE) begin
+                input_passcode <= 16'd0;
+                digit_count <= 3'd0;
+                status <= WAITING_COMMANDS;
+            end else if (key_valid) begin
 
                 // * / C：clear
                 if (key_value == KEY_STAR || key_value == KEY_C) begin
-                    input_passcode <= 16'd0;
-                    digit_count <= 3'd0;
-                    status <= INPUT_PASSCODE;
+                    if (status == INPUT_PASSCODE ||
+                        status == CURRENT_PASSCODE ||
+                        status == CHANGE_NEWPASSCODE) begin
+                        input_passcode <= 16'd0;
+                        digit_count <= 3'd0;
+                    end
                 end
 
                 // input number
@@ -204,23 +234,20 @@ module passcode (
                         end else begin
                             status <= PASSCODE_ERROR;
                         end
-
-                        input_passcode <= 16'd0;
-                        digit_count <= 3'd0;
                     end
 
                     else if (status == CURRENT_PASSCODE) begin
                         if (digit_count == 4) begin
-                            if (input_passcode == stored_passcode)
+                            if (input_passcode == stored_passcode) begin
                                 status <= CHANGE_NEWPASSCODE;
-                            else
+                                input_passcode <= 16'd0;
+                                digit_count <= 3'd0;
+                            end else begin
                                 status <= CHANGE_FAIL;
+                            end
                         end else begin
                             status <= PASSCODE_ERROR;
                         end
-
-                        input_passcode <= 16'd0;
-                        digit_count <= 3'd0;
                     end
 
                     else if (status == CHANGE_NEWPASSCODE) begin
@@ -230,17 +257,16 @@ module passcode (
                         end else begin
                             status <= PASSCODE_ERROR;
                         end
-
-                        input_passcode <= 16'd0;
-                        digit_count <= 3'd0;
                     end
                 end
 
                 // B：change passcode
                 else if (key_value == KEY_B) begin
-                    status <= CURRENT_PASSCODE;
-                    input_passcode <= 16'd0;
-                    digit_count <= 3'd0;
+                    if (status == INPUT_PASSCODE) begin
+                        status <= CURRENT_PASSCODE;
+                        input_passcode <= 16'd0;
+                        digit_count <= 3'd0;
+                    end
                 end
 
                 // D：backspace
@@ -257,8 +283,9 @@ module passcode (
     // =========================
     // LED display
     // =========================
-   /* always @(*) begin
+    always @(*) begin
         case (status)
+            WAITING_COMMANDS:   led = 4'b0000;
             INPUT_PASSCODE:     led = 4'b0001;
             AUTH_SUCCESS:       led = 4'b1111;
             AUTH_FAIL:          led = 4'b0011;
@@ -270,5 +297,5 @@ module passcode (
             default:            led = 4'b0000;
         endcase
     end
-*/
+
 endmodule
