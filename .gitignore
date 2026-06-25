@@ -13,6 +13,7 @@ output_files/
 greybox_tmp/
 hc_output/
 hps_isw_handoff/
+c5_pin_model_dump.txt
 *.bak
 *.rpt
 *.summary
