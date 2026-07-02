@@ -45,16 +45,16 @@ bool passcode_status_is_terminal(uint32_t status) {
            code == PASSCODE_STATUS_ERROR;
 }
 
-static volatile uint32_t *pio_data_register(void *map_base, uint32_t pio_base) {
-    unsigned long register_offset =
-        (unsigned long)(PASSCODE_LWFPGASLVS_OFST + pio_base + PASSCODE_PIO_DATA_OFFSET) &
+static volatile uint32_t *pio_register(void *map_base, uint32_t pio_base,
+                                       uint32_t byte_offset) {
+    unsigned long mapped_offset =
+        (unsigned long)(PASSCODE_LWFPGASLVS_OFST + pio_base + byte_offset) &
         (unsigned long)PASSCODE_HW_REGS_MASK;
 
-    return (volatile uint32_t *)((char *)map_base + register_offset);
+    return (volatile uint32_t *)((char *)map_base + mapped_offset);
 }
 
-int passcode_fpga_open(passcode_fpga_t *dev, bool mock, uint32_t command_base,
-                       uint32_t status_base) {
+int passcode_fpga_open(passcode_fpga_t *dev, bool mock, uint32_t pio_base) {
     memset(dev, 0, sizeof(*dev));
     dev->fd = -1;
     dev->mock = mock;
@@ -90,8 +90,8 @@ int passcode_fpga_open(passcode_fpga_t *dev, bool mock, uint32_t command_base,
         return -1;
     }
 
-    dev->command_reg = pio_data_register(dev->map_base, command_base);
-    dev->status_reg = pio_data_register(dev->map_base, status_base);
+    dev->command_reg = pio_register(dev->map_base, pio_base, PASSCODE_COMMAND_OFFSET);
+    dev->status_reg = pio_register(dev->map_base, pio_base, PASSCODE_STATUS_OFFSET);
     return 0;
 }
 

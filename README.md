@@ -22,20 +22,19 @@ The Linux program accesses FPGA registers from the DE10-Nano HPS through `/dev/m
 virtual_base + ((ALT_LWFPGASLVS_OFST + pio_base) & HW_REGS_MASK)
 ```
 
-The PIO base addresses should be copied from `hps_0.h`. Set them in
+The PIO base address should be copied from `hps_0.h`. Set it in
 `src/passcode_protocol.h`:
 
 ```c
-#define PASSCODE_COMMAND_PIO_BASE   0x00000000u
-#define PASSCODE_STATUS_PIO_BASE    0x00000010u
+#define PASSCODE_PIO_BASE   0x00000000u
 ```
 
-Linux and FPGA share two PIO data registers:
+Linux and FPGA share one custom Avalon-MM PIO component with two registers:
 
-| PIO | Data offset | Direction | Description |
+| Register | Byte offset | Direction | Description |
 | --- | --- | --- | --- |
-| `COMMAND_PIO` | `0x00` | Linux -> FPGA | `1`: auth, `2`: change passcode |
-| `STATUS_PIO` | `0x00` | FPGA -> Linux | state code and entered digit count |
+| `COMMAND` | `0x00` | Linux -> FPGA | `1`: auth, `2`: change passcode |
+| `STATUS` | `0x04` | FPGA -> Linux | state code and entered digit count |
 
 `COMMAND` values:
 
@@ -78,13 +77,11 @@ each `STATUS` change, so digit changes remain visible in the terminal log.
 | `7` | `PASSCODE_CHANGE_FAIL` | Passcode change failed |
 | `8` | `ERROR` | General input or state error |
 
-Keypad scanning, passcode comparison, passcode change, digit counting, and A/B/C/D key handling are done on the FPGA side. The Linux side writes `COMMAND_PIO` and monitors `STATUS_PIO`.
+Keypad scanning, passcode comparison, passcode change, digit counting, and A/B/C/D key handling are done on the FPGA side. The Linux side writes `COMMAND` and monitors `STATUS`.
 
 After Linux reads a terminal result, it acknowledges the result by writing
-`COMMAND=0`. The FPGA should then return `STATUS_PIO` to `WAITING_COMMANDS`
-(`0`). With a normal FPGA-to-HPS input PIO, Linux cannot directly write
-`STATUS_PIO`, so the status reset is the FPGA side's job after it observes
-`COMMAND=0`.
+`COMMAND=0`. The FPGA should then return `STATUS` to `WAITING_COMMANDS`
+(`0`) after it observes `COMMAND=0`.
 
 ## Quartus / GHRD Integration
 
@@ -94,30 +91,27 @@ HPS-to-FPGA bridge, clocks, resets, and DE10-Nano pin assignments.
 
 | File | Purpose |
 | --- | --- |
-| `DE10_NANO_SoC_GHRD/passcode/password.v` | Keypad passcode state machine. It accepts `command` and outputs `status_raw`. |
-| `DE10_NANO_SoC_GHRD/passcode/keyboard_scan.v` | 4x4 keypad scanner and debouncer. |
-| `DE10_NANO_SoC_GHRD/passcode/password_pio.v` | Custom Avalon-MM command/status PIO registers. |
-| `DE10_NANO_SoC_GHRD/passcode/password_system.v` | Platform Designer component wrapper. |
+| `DE10_NANO_SoC_GHRD/passcode/passcode_pio.v` | Single-file Platform Designer component. It contains the custom Avalon-MM PIO, passcode state machine, and keypad scanner. |
 | `DE10_NANO_SoC_GHRD/PASSCODE_INTEGRATION.md` | Step-by-step GHRD wiring notes. |
 | `quartus/` | Standalone/reference Quartus project for the passcode core. |
 
-In the GHRD flow, add `password_system` as a custom Platform Designer component.
-It exposes two Avalon-MM slave interfaces:
+In the GHRD flow, add `passcode_pio` as a custom Platform Designer component.
+It exposes one Avalon-MM slave interface:
 
 | Interface | Width | Purpose |
 | --- | --- | --- |
-| `command_slave` | 32 | Linux writes command values; FPGA reads them. |
-| `status_slave` | 32 | FPGA writes state and digit count; Linux reads them. |
+| `s1` | 32 | Linux writes command at address 0 and reads status at address 1. |
 
 Wire it as:
 
 ```text
-Linux /dev/mem -> HPS lightweight bridge -> password_system.command_slave
-password.status_raw -> password_system.status_slave -> HPS lightweight bridge -> Linux /dev/mem
+Linux /dev/mem -> HPS lightweight bridge -> passcode_pio.s1
+passcode_pio.address=0 -> COMMAND
+passcode_pio.address=1 -> STATUS
 ```
 
-After HDL generation, copy the generated base addresses from `hps_0.h` into
-`PASSCODE_COMMAND_PIO_BASE` and `PASSCODE_STATUS_PIO_BASE`.
+After HDL generation, copy the generated base address from `hps_0.h` into
+`PASSCODE_PIO_BASE`.
 
 ## Build
 
@@ -159,11 +153,10 @@ sudo ./build/passcodectl watch
 sudo ./build/passcodectl status
 ```
 
-If your Platform Designer PIO base addresses are not the placeholder values,
-copy the values from `hps_0.h`:
+If your Platform Designer PIO base address is not the placeholder value, copy
+the value from `hps_0.h`:
 
-Update `PASSCODE_COMMAND_PIO_BASE` and `PASSCODE_STATUS_PIO_BASE` in
-`src/passcode_protocol.h`.
+Update `PASSCODE_PIO_BASE` in `src/passcode_protocol.h`.
 
 Run without FPGA hardware:
 
@@ -267,8 +260,8 @@ PAM options:
 
 ## Items To Confirm With The FPGA Side
 
-- Actual PIO base addresses in `hps_0.h`, for example `COMMAND_PIO_BASE` and `STATUS_PIO_BASE`.
-- That both PIO data registers are at offset `0x00`.
+- Actual PIO base address in `hps_0.h`, for example `PASSCODE_PIO_BASE`.
+- That `COMMAND` is at byte offset `0x00` and `STATUS` is at byte offset `0x04`.
 - Whether `STATUS[7:0]` is the state code and `STATUS[15:8]` is the digit count.
 - When the FPGA changes `STATUS` after receiving `COMMAND=1` or `COMMAND=2`.
 - Whether the status code table above matches the Verilog implementation.

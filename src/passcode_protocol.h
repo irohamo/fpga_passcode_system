@@ -14,14 +14,14 @@
 #define PASSCODE_HW_REGS_MASK       (PASSCODE_HW_REGS_SPAN - 1u)
 #define PASSCODE_LWFPGASLVS_OFST    0xff200000u
 
-/* Set these from the Platform Designer addresses in hps_0.h. */
-#define PASSCODE_COMMAND_PIO_BASE   0x00000000u
-#define PASSCODE_STATUS_PIO_BASE    0x00000010u
+/* Set this from the Platform Designer address in hps_0.h. */
+#define PASSCODE_PIO_BASE           0x00000000u
 
-/* Logical register IDs used by the Linux code. Each PIO uses data offset 0x00. */
+/* Logical register IDs used by the Linux code. */
 #define PASSCODE_REG_COMMAND 0u
 #define PASSCODE_REG_STATUS  1u
-#define PASSCODE_PIO_DATA_OFFSET 0x00u
+#define PASSCODE_COMMAND_OFFSET     0x00u
+#define PASSCODE_STATUS_OFFSET      0x04u
 
 /*
  * STATUS register bit layout:
