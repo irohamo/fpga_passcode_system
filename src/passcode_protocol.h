@@ -15,7 +15,7 @@
 #define PASSCODE_LWFPGASLVS_OFST    0xff200000u
 
 /* Set this from the Platform Designer address in hps_0.h. */
-#define PASSCODE_PIO_BASE           0x00000000u
+#define PASSCODE_PIO_BASE           0x00003500u
 
 /* Logical register IDs used by the Linux code. */
 #define PASSCODE_REG_COMMAND 0u

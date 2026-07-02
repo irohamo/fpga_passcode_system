@@ -7,11 +7,13 @@ Use the GHRD project as the starting point. It already contains the HPS,
 lightweight HPS-to-FPGA bridge, reset wiring, and DE10-Nano pin assignments that
 the Linux `/dev/mem` code expects.
 
-## File Added
+## Files
 
 | File | Purpose |
 | --- | --- |
 | `passcode/passcode_pio.v` | Single-file custom Avalon-MM PIO component. It only contains the HPS-facing command/status register block. |
+| `passcode/password.v` | Passcode state machine and keypad authentication logic. |
+| `passcode/keyboard_scan.v` | 4x4 keypad scanner used by `password.v`. |
 
 ## Custom PIO Component
 
@@ -60,7 +62,7 @@ Recommended base address:
 
 | Interface | Base |
 | --- | --- |
-| `passcode_pio.s1` | `0x00003050` |
+| `passcode_pio.s1` | `0x00003500` |
 
 Do not use `0x00003000` if `led_pio.s1` is still in the GHRD system, because
 the default GHRD LED PIO often already occupies `0x00003000..0x0000300f`.
@@ -76,13 +78,16 @@ After Platform Designer regenerates `soc_system`, `passcode_pio` should not add
 any new top-level conduit ports. It should only appear as an HPS-visible
 Avalon-MM slave register block.
 
+The passcode authentication logic is intentionally separate from this PIO file.
+Use `password.v` and `keyboard_scan.v` for the keypad/passcode side.
+
 ## Linux-Side Update
 
 After generating HDL, check the generated `hps_0.h` or system header for the
 PIO base address and copy it to:
 
 ```c
-#define PASSCODE_PIO_BASE 0x00003050u
+#define PASSCODE_PIO_BASE 0x00003500u
 ```
 
 in `src/passcode_protocol.h`.

@@ -26,7 +26,7 @@ The PIO base address should be copied from `hps_0.h`. Set it in
 `src/passcode_protocol.h`:
 
 ```c
-#define PASSCODE_PIO_BASE   0x00000000u
+#define PASSCODE_PIO_BASE   0x00003500u
 ```
 
 Linux and FPGA share one custom Avalon-MM PIO component with two registers:
@@ -92,6 +92,8 @@ HPS-to-FPGA bridge, clocks, resets, and DE10-Nano pin assignments.
 | File | Purpose |
 | --- | --- |
 | `DE10_NANO_SoC_GHRD/passcode/passcode_pio.v` | Single-file Platform Designer component for the custom Avalon-MM command/status PIO only. |
+| `DE10_NANO_SoC_GHRD/passcode/password.v` | Passcode state machine and keypad authentication logic. |
+| `DE10_NANO_SoC_GHRD/passcode/keyboard_scan.v` | 4x4 keypad scanner used by `password.v`. |
 | `DE10_NANO_SoC_GHRD/PASSCODE_INTEGRATION.md` | Step-by-step GHRD wiring notes. |
 | `quartus/` | Standalone/reference Quartus project for the passcode core. |
 
