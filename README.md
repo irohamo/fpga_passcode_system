@@ -91,7 +91,7 @@ HPS-to-FPGA bridge, clocks, resets, and DE10-Nano pin assignments.
 
 | File | Purpose |
 | --- | --- |
-| `DE10_NANO_SoC_GHRD/passcode/passcode_pio.v` | Single-file Platform Designer component. It contains the custom Avalon-MM PIO, passcode state machine, and keypad scanner. |
+| `DE10_NANO_SoC_GHRD/passcode/passcode_pio.v` | Single-file Platform Designer component for the custom Avalon-MM command/status PIO only. |
 | `DE10_NANO_SoC_GHRD/PASSCODE_INTEGRATION.md` | Step-by-step GHRD wiring notes. |
 | `quartus/` | Standalone/reference Quartus project for the passcode core. |
 
@@ -106,8 +106,8 @@ Wire it as:
 
 ```text
 Linux /dev/mem -> HPS lightweight bridge -> passcode_pio.s1
-passcode_pio.address=0 -> COMMAND
-passcode_pio.address=1 -> STATUS
+passcode_pio.command -> passcode state machine
+passcode state machine -> passcode_pio.status_next
 ```
 
 After HDL generation, copy the generated base address from `hps_0.h` into

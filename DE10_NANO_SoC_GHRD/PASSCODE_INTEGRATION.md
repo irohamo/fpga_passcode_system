@@ -11,7 +11,7 @@ the Linux `/dev/mem` code expects.
 
 | File | Purpose |
 | --- | --- |
-| `passcode/passcode_pio.v` | Single-file custom Avalon-MM component. It contains the PIO register interface, passcode state machine, and keypad scanner. |
+| `passcode/passcode_pio.v` | Single-file custom Avalon-MM PIO component. It only contains the HPS-facing command/status register block. |
 
 ## Custom PIO Component
 
@@ -51,12 +51,13 @@ In Platform Designer:
    - `writedata`
 7. Associate `s1` with `clk` and `reset`.
 8. Create/export these conduit signals:
-   - `keypad_row[3:0]`
-   - `keypad_col[3:0]`
+   - `command[31:0]`
+   - `status_next[31:0]`
 9. Save the component as `passcode_pio`.
 10. Add `passcode_pio` to `soc_system`.
 11. Connect `s1` to the HPS lightweight bridge path, like the `MyPIO` exercise.
-12. Export the keypad conduit as needed.
+12. Export the `command` and `status_next` conduit so the top-level file can
+    connect it to the passcode state machine.
 
 Recommended base address:
 
@@ -74,25 +75,25 @@ overlap the custom PIO address range.
 
 ## Top-Level Wiring
 
-After Platform Designer regenerates `soc_system`, wire the exported keypad
-conduit ports in `DE10_NANO_SoC_GHRD.v`.
+After Platform Designer regenerates `soc_system`, wire the exported
+command/status conduit ports in `DE10_NANO_SoC_GHRD.v`.
 
 The generated `soc_system` module should contain ports similar to:
 
 ```verilog
-passcode_pio_0_keypad_row_export
-passcode_pio_0_keypad_col_export
+passcode_pio_0_command_export
+passcode_pio_0_status_next_export
 ```
 
-Connect those exported ports to the physical keypad pins/signals:
+Connect those exported ports to the separate passcode state machine:
 
 ```verilog
-.passcode_pio_0_keypad_row_export(<keypad_row_signal>),
-.passcode_pio_0_keypad_col_export(<keypad_col_signal>),
+.passcode_pio_0_command_export(passcode_command),
+.passcode_pio_0_status_next_export(passcode_status),
 ```
 
-Replace `<keypad_row_signal>` and `<keypad_col_signal>` with the actual GPIO
-signals used for the keypad.
+The keypad row/column signals should connect to the passcode state machine, not
+to `passcode_pio`.
 
 ## Linux-Side Update
 
