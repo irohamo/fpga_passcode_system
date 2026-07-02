@@ -86,32 +86,35 @@ After Linux reads a terminal result, it acknowledges the result by writing
 `STATUS_PIO`, so the status reset is the FPGA side's job after it observes
 `COMMAND=0`.
 
-## Quartus-Side Files
+## Quartus / GHRD Integration
 
-The current Quartus source files live under `quartus/`.
+The main hardware integration work now lives under `DE10_NANO_SoC_GHRD/`.
+Use that project as the base because it already contains the HPS, lightweight
+HPS-to-FPGA bridge, clocks, resets, and DE10-Nano pin assignments.
 
 | File | Purpose |
 | --- | --- |
-| `password.v` | Keypad passcode state machine. It accepts `command` and outputs `status_raw`. |
-| `keyboard_scan.v` | 4x4 keypad scanner and debouncer. |
-| `password_pio.v` | Avalon-MM PIO-style command and status registers. |
-| `password_system.v` | Wrapper that connects `password.v` to the command/status PIO modules. |
-| `password.qsf` / `password.qpf` | Quartus project files. |
+| `DE10_NANO_SoC_GHRD/passcode/password.v` | Keypad passcode state machine. It accepts `command` and outputs `status_raw`. |
+| `DE10_NANO_SoC_GHRD/passcode/keyboard_scan.v` | 4x4 keypad scanner and debouncer. |
+| `DE10_NANO_SoC_GHRD/PASSCODE_INTEGRATION.md` | Step-by-step GHRD wiring notes. |
+| `quartus/` | Standalone/reference Quartus project for the passcode core. |
 
-For Linux integration, use `password_system` as the component/wrapper that
-connects to the HPS lightweight bridge:
+In the GHRD flow, use two standard Platform Designer PIO components:
+
+| Component | Direction | Width | Purpose |
+| --- | --- | --- | --- |
+| `command_pio` | Output | 32 | Linux writes command values; FPGA reads them. |
+| `status_pio` | Input | 32 | FPGA writes state and digit count; Linux reads them. |
+
+Wire them as:
 
 ```text
-HPS lightweight bridge -> PasswordCommandPIO -> password.command
-password.status_raw    -> PasswordStatusPIO  -> HPS lightweight bridge
+Linux /dev/mem -> HPS lightweight bridge -> command_pio -> password.command
+password.status_raw -> status_pio -> HPS lightweight bridge -> Linux /dev/mem
 ```
 
-The raw status value produced by `password.v` is:
-
-```verilog
-status_raw[7:0]  = status code
-status_raw[15:8] = entered digit count
-```
+After HDL generation, copy the generated base addresses from `hps_0.h` into
+`PASSCODE_COMMAND_PIO_BASE` and `PASSCODE_STATUS_PIO_BASE`.
 
 ## Build
 

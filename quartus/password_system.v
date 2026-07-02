@@ -8,7 +8,6 @@
 module password_system (
     input  wire        clk,
     input  wire        reset,
-    input  wire        rst_n,
 
     input  wire [3:0]  row,
     output wire [3:0]  col,
@@ -29,6 +28,9 @@ module password_system (
 
     wire [31:0] command_data;
     wire [31:0] status_data;
+    wire        core_rst_n;
+
+    assign core_rst_n = ~reset;
 
     PasswordCommandPIO command_pio (
         .reset(reset),
@@ -43,7 +45,7 @@ module password_system (
 
     password password_core (
         .clk(clk),
-        .rst_n(rst_n),
+        .rst_n(core_rst_n),
         .command(command_data),
         .row(row),
         .col(col),
@@ -65,4 +67,3 @@ module password_system (
     );
 
 endmodule
-
