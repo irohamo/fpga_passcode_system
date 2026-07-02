@@ -11,8 +11,8 @@ the Linux `/dev/mem` code expects.
 
 | File | Purpose |
 | --- | --- |
-| `passcode/command_pio.v` | MyPIO-style command register. Linux writes command values, FPGA reads `command`. |
-| `passcode/status_pio.v` | MyPIO-style status register. FPGA writes `status_next`, Linux reads status values. |
+| `passcode/command_pio.v` | MyPIO-style command register. Linux writes command values, FPGA reads `command_out`. |
+| `passcode/status_pio.v` | MyPIO-style status register. FPGA writes `status_in`, Linux reads status values. |
 | `passcode/password.v` | Passcode state machine and keypad authentication logic. |
 | `passcode/keyboard_scan.v` | 4x4 keypad scanner used by `password.v`. |
 
@@ -38,7 +38,7 @@ Avalon-MM slave interface `s1`:
 
 Conduit:
 
-- `command[31:0]`
+- `command_out[31:0]`
 
 Recommended base address:
 
@@ -64,7 +64,7 @@ Avalon-MM slave interface `s1`:
 
 Conduit:
 
-- `status_next[31:0]`
+- `status_in[31:0]`
 
 Recommended base address:
 
@@ -88,8 +88,8 @@ wire [31:0] passcode_status;
 Connect the generated `soc_system` exports:
 
 ```verilog
-.command_pio_0_command_export(passcode_command),
-.status_pio_0_status_next_export(passcode_status),
+.command_pio_0_command_out_export(passcode_command),
+.status_pio_0_status_in_export(passcode_status),
 ```
 
 Connect the passcode core:

@@ -1,7 +1,7 @@
 /*
  * MyPIO-style status register.
  *
- * FPGA logic drives status_next, and Linux reads STATUS through Avalon-MM.
+ * FPGA logic drives status_in, and Linux reads STATUS through Avalon-MM.
  * A write path is kept for simple manual debug tests.
  */
 
@@ -13,7 +13,7 @@ module status_pio (
     output reg  [31:0] readdata,
     input  wire        write,
     input  wire [31:0] writedata,
-    input  wire [31:0] status_next
+    input  wire [31:0] status_in
 );
 
     reg [31:0] status;
@@ -23,12 +23,12 @@ module status_pio (
             status <= 32'd0;
         end
         else begin
-            status <= status_next;
+            status <= status_in;
 
             if (write) begin
                 case (address)
                     2'b00: status <= writedata;
-                    default: status <= status_next;
+                    default: status <= status_in;
                 endcase
             end
         end

@@ -1,7 +1,7 @@
 /*
  * MyPIO-style command register.
  *
- * Linux writes COMMAND through Avalon-MM, and FPGA logic reads the command
+ * Linux writes COMMAND through Avalon-MM, and FPGA logic reads the command_out
  * conduit output.
  */
 
@@ -13,17 +13,21 @@ module command_pio (
     output reg  [31:0] readdata,
     input  wire        write,
     input  wire [31:0] writedata,
-    output reg  [31:0] command
+    output wire [31:0] command_out
 );
+
+    reg [31:0] command_value;
+
+    assign command_out = command_value;
 
     always @(posedge clk or posedge reset) begin
         if (reset) begin
-            command <= 32'd0;
+            command_value <= 32'd0;
         end
         else if (write) begin
             case (address)
-                2'b00: command <= writedata;
-                default: command <= command;
+                2'b00: command_value <= writedata;
+                default: command_value <= command_value;
             endcase
         end
     end
@@ -32,7 +36,7 @@ module command_pio (
         readdata = 32'd0;
         if (read) begin
             case (address)
-                2'b00: readdata = command;
+                2'b00: readdata = command_value;
                 default: readdata = 32'd0;
             endcase
         end

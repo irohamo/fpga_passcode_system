@@ -104,14 +104,16 @@ Designer components. Each exposes one Avalon-MM slave interface:
 
 | Component | Width | Purpose |
 | --- | --- | --- |
-| `command_pio.s1` | 32 | Linux writes command values; FPGA reads `command`. |
-| `status_pio.s1` | 32 | FPGA writes `status_next`; Linux reads status values. |
+| `command_pio.s1` | 32 | Linux writes command values; FPGA reads `command_out`. |
+| `status_pio.s1` | 32 | FPGA writes `status_in`; Linux reads status values. |
 
 Wire them as:
 
 ```text
-Linux /dev/mem -> HPS lightweight bridge -> command_pio.s1 -> password.command
-password.status_raw -> status_pio.status_next -> status_pio.s1 -> Linux /dev/mem
+Linux /dev/mem -> HPS lightweight bridge -> command_pio.s1
+command_pio.command_out -> password.command
+password.status_raw -> status_pio.status_in
+status_pio.s1 -> HPS lightweight bridge -> Linux /dev/mem
 ```
 
 After HDL generation, copy the generated base addresses from `hps_0.h` into
