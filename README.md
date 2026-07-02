@@ -22,19 +22,20 @@ The Linux program accesses FPGA registers from the DE10-Nano HPS through `/dev/m
 virtual_base + ((ALT_LWFPGASLVS_OFST + pio_base) & HW_REGS_MASK)
 ```
 
-The PIO base address should be copied from `hps_0.h`. Set it in
+The PIO base addresses should be copied from `hps_0.h`. Set them in
 `src/passcode_protocol.h`:
 
 ```c
-#define PASSCODE_PIO_BASE   0x00003500u
+#define PASSCODE_COMMAND_PIO_BASE   0x00003500u
+#define PASSCODE_STATUS_PIO_BASE    0x00003510u
 ```
 
-Linux and FPGA share one custom Avalon-MM PIO component with two registers:
+Linux and FPGA share two custom Avalon-MM PIO components:
 
-| Register | Byte offset | Direction | Description |
+| PIO | Data offset | Direction | Description |
 | --- | --- | --- | --- |
-| `COMMAND` | `0x00` | Linux -> FPGA | `1`: auth, `2`: change passcode |
-| `STATUS` | `0x04` | FPGA -> Linux | state code and entered digit count |
+| `COMMAND_PIO` | `0x00` | Linux -> FPGA | `1`: auth, `2`: change passcode |
+| `STATUS_PIO` | `0x00` | FPGA -> Linux | state code and entered digit count |
 
 `COMMAND` values:
 
@@ -91,29 +92,30 @@ HPS-to-FPGA bridge, clocks, resets, and DE10-Nano pin assignments.
 
 | File | Purpose |
 | --- | --- |
-| `DE10_NANO_SoC_GHRD/passcode/passcode_pio.v` | Single-file Platform Designer component for the custom Avalon-MM command/status PIO only. |
+| `DE10_NANO_SoC_GHRD/passcode/command_pio.v` | Custom Avalon-MM command PIO. |
+| `DE10_NANO_SoC_GHRD/passcode/status_pio.v` | Custom Avalon-MM status PIO. |
 | `DE10_NANO_SoC_GHRD/passcode/password.v` | Passcode state machine and keypad authentication logic. |
 | `DE10_NANO_SoC_GHRD/passcode/keyboard_scan.v` | 4x4 keypad scanner used by `password.v`. |
 | `DE10_NANO_SoC_GHRD/PASSCODE_INTEGRATION.md` | Step-by-step GHRD wiring notes. |
 | `quartus/` | Standalone/reference Quartus project for the passcode core. |
 
-In the GHRD flow, add `passcode_pio` as a custom Platform Designer component.
-It exposes one Avalon-MM slave interface:
+In the GHRD flow, add `command_pio` and `status_pio` as custom Platform
+Designer components. Each exposes one Avalon-MM slave interface:
 
-| Interface | Width | Purpose |
+| Component | Width | Purpose |
 | --- | --- | --- |
-| `s1` | 32 | Linux writes command at address 0 and reads status at address 1. |
+| `command_pio.s1` | 32 | Linux writes command values; FPGA reads `command`. |
+| `status_pio.s1` | 32 | FPGA writes `status_next`; Linux reads status values. |
 
-Wire it as:
+Wire them as:
 
 ```text
-Linux /dev/mem -> HPS lightweight bridge -> passcode_pio.s1
-passcode_pio.address=0 -> COMMAND register
-passcode_pio.address=1 -> STATUS register
+Linux /dev/mem -> HPS lightweight bridge -> command_pio.s1 -> password.command
+password.status_raw -> status_pio.status_next -> status_pio.s1 -> Linux /dev/mem
 ```
 
-After HDL generation, copy the generated base address from `hps_0.h` into
-`PASSCODE_PIO_BASE`.
+After HDL generation, copy the generated base addresses from `hps_0.h` into
+`PASSCODE_COMMAND_PIO_BASE` and `PASSCODE_STATUS_PIO_BASE`.
 
 ## Build
 
@@ -158,7 +160,8 @@ sudo ./build/passcodectl status
 If your Platform Designer PIO base address is not the placeholder value, copy
 the value from `hps_0.h`:
 
-Update `PASSCODE_PIO_BASE` in `src/passcode_protocol.h`.
+Update `PASSCODE_COMMAND_PIO_BASE` and `PASSCODE_STATUS_PIO_BASE` in
+`src/passcode_protocol.h`.
 
 Run without FPGA hardware:
 
@@ -262,8 +265,8 @@ PAM options:
 
 ## Items To Confirm With The FPGA Side
 
-- Actual PIO base address in `hps_0.h`, for example `PASSCODE_PIO_BASE`.
-- That `COMMAND` is at byte offset `0x00` and `STATUS` is at byte offset `0x04`.
+- Actual PIO base addresses in `hps_0.h`, for example `COMMAND_PIO_BASE` and `STATUS_PIO_BASE`.
+- That both PIO data registers are at offset `0x00`.
 - Whether `STATUS[7:0]` is the state code and `STATUS[15:8]` is the digit count.
 - When the FPGA changes `STATUS` after receiving `COMMAND=1` or `COMMAND=2`.
 - Whether the status code table above matches the Verilog implementation.

@@ -23,7 +23,8 @@ typedef struct {
     passcode_mock_registers_t mock_regs;
 } passcode_fpga_t;
 
-int passcode_fpga_open(passcode_fpga_t *dev, bool mock, uint32_t pio_base);
+int passcode_fpga_open(passcode_fpga_t *dev, bool mock, uint32_t command_base,
+                       uint32_t status_base);
 void passcode_fpga_close(passcode_fpga_t *dev);
 
 uint32_t passcode_fpga_read(passcode_fpga_t *dev, uint32_t offset);

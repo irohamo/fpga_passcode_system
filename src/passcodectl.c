@@ -416,7 +416,9 @@ int main(int argc, char **argv) {
     }
 
     passcode_fpga_t dev;
-    if (passcode_fpga_open(&dev, options.mock, PASSCODE_PIO_BASE) != 0) {
+    if (passcode_fpga_open(&dev, options.mock,
+                           PASSCODE_COMMAND_PIO_BASE,
+                           PASSCODE_STATUS_PIO_BASE) != 0) {
         perror("open FPGA bridge");
         return 1;
     }

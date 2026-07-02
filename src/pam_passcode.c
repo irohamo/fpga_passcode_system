@@ -63,7 +63,9 @@ PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags,
     parse_options(argc, argv, &options);
 
     passcode_fpga_t dev;
-    if (passcode_fpga_open(&dev, options.mock, PASSCODE_PIO_BASE) != 0) {
+    if (passcode_fpga_open(&dev, options.mock,
+                           PASSCODE_COMMAND_PIO_BASE,
+                           PASSCODE_STATUS_PIO_BASE) != 0) {
         send_pam_info(pamh, "FPGA authentication device is unavailable.");
         return PAM_AUTHINFO_UNAVAIL;
     }
