@@ -51,8 +51,8 @@ In Platform Designer:
    - `writedata`
 7. Associate `s1` with `clk` and `reset`.
 8. Create/export these conduit signals:
-   - `row[3:0]`
-   - `col[3:0]`
+   - `keypad_row[3:0]`
+   - `keypad_col[3:0]`
 9. Save the component as `passcode_pio`.
 10. Add `passcode_pio` to `soc_system`.
 11. Connect `s1` to the HPS lightweight bridge path, like the `MyPIO` exercise.
@@ -62,7 +62,15 @@ Recommended base address:
 
 | Interface | Base |
 | --- | --- |
-| `passcode_pio.s1` | `0x00003000` |
+| `passcode_pio.s1` | `0x00003050` |
+
+Do not use `0x00003000` if `led_pio.s1` is still in the GHRD system, because
+the default GHRD LED PIO often already occupies `0x00003000..0x0000300f`.
+
+Connect `passcode_pio.s1` only to the HPS lightweight bridge path used by
+`led_pio`, `dipsw_pio`, and `button_pio`. Do not connect it to
+`f2sdram_only_master.master`; that master spans the SDRAM address space and will
+overlap the custom PIO address range.
 
 ## Top-Level Wiring
 
@@ -72,15 +80,15 @@ conduit ports in `DE10_NANO_SoC_GHRD.v`.
 The generated `soc_system` module should contain ports similar to:
 
 ```verilog
-passcode_pio_0_row_export
-passcode_pio_0_col_export
+passcode_pio_0_keypad_row_export
+passcode_pio_0_keypad_col_export
 ```
 
 Connect those exported ports to the physical keypad pins/signals:
 
 ```verilog
-.passcode_pio_0_row_export(<keypad_row_signal>),
-.passcode_pio_0_col_export(<keypad_col_signal>),
+.passcode_pio_0_keypad_row_export(<keypad_row_signal>),
+.passcode_pio_0_keypad_col_export(<keypad_col_signal>),
 ```
 
 Replace `<keypad_row_signal>` and `<keypad_col_signal>` with the actual GPIO
@@ -92,7 +100,7 @@ After generating HDL, check the generated `hps_0.h` or system header for the
 PIO base address and copy it to:
 
 ```c
-#define PASSCODE_PIO_BASE 0x00003000u
+#define PASSCODE_PIO_BASE 0x00003050u
 ```
 
 in `src/passcode_protocol.h`.

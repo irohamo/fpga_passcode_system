@@ -14,8 +14,8 @@ module passcode_pio (
     input  wire        write,
     input  wire [31:0] writedata,
 
-    input  wire [3:0]  row,
-    output wire [3:0]  col
+    input  wire [3:0]  keypad_row,
+    output wire [3:0]  keypad_col
 );
 
     localparam ADDR_COMMAND        = 2'b00;
@@ -91,7 +91,7 @@ module passcode_pio (
     wire [31:0] status_next;
 
     assign status_next = {16'd0, 5'd0, digit_count, 4'd0, status};
-    assign col = scan_out;
+    assign keypad_col = scan_out;
 
     always @(posedge clk or posedge reset) begin
         if (reset) begin
@@ -137,7 +137,7 @@ module passcode_pio (
         raw_down = 1'b1;
         raw_code = 4'h0;
 
-        case ({scan_col, row})
+        case ({scan_col, keypad_row})
             {2'd0, 4'b1110}: raw_code = 4'd1;
             {2'd1, 4'b1110}: raw_code = 4'd2;
             {2'd2, 4'b1110}: raw_code = 4'd3;
