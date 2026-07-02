@@ -96,21 +96,24 @@ HPS-to-FPGA bridge, clocks, resets, and DE10-Nano pin assignments.
 | --- | --- |
 | `DE10_NANO_SoC_GHRD/passcode/password.v` | Keypad passcode state machine. It accepts `command` and outputs `status_raw`. |
 | `DE10_NANO_SoC_GHRD/passcode/keyboard_scan.v` | 4x4 keypad scanner and debouncer. |
+| `DE10_NANO_SoC_GHRD/passcode/password_pio.v` | Custom Avalon-MM command/status PIO registers. |
+| `DE10_NANO_SoC_GHRD/passcode/password_system.v` | Platform Designer component wrapper. |
 | `DE10_NANO_SoC_GHRD/PASSCODE_INTEGRATION.md` | Step-by-step GHRD wiring notes. |
 | `quartus/` | Standalone/reference Quartus project for the passcode core. |
 
-In the GHRD flow, use two standard Platform Designer PIO components:
+In the GHRD flow, add `password_system` as a custom Platform Designer component.
+It exposes two Avalon-MM slave interfaces:
 
-| Component | Direction | Width | Purpose |
-| --- | --- | --- | --- |
-| `command_pio` | Output | 32 | Linux writes command values; FPGA reads them. |
-| `status_pio` | Input | 32 | FPGA writes state and digit count; Linux reads them. |
+| Interface | Width | Purpose |
+| --- | --- | --- |
+| `command_slave` | 32 | Linux writes command values; FPGA reads them. |
+| `status_slave` | 32 | FPGA writes state and digit count; Linux reads them. |
 
-Wire them as:
+Wire it as:
 
 ```text
-Linux /dev/mem -> HPS lightweight bridge -> command_pio -> password.command
-password.status_raw -> status_pio -> HPS lightweight bridge -> Linux /dev/mem
+Linux /dev/mem -> HPS lightweight bridge -> password_system.command_slave
+password.status_raw -> password_system.status_slave -> HPS lightweight bridge -> Linux /dev/mem
 ```
 
 After HDL generation, copy the generated base addresses from `hps_0.h` into

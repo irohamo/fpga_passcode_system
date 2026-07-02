@@ -13,6 +13,8 @@ the Linux `/dev/mem` code expects.
 | --- | --- |
 | `passcode/password.v` | Keypad passcode state machine. |
 | `passcode/keyboard_scan.v` | 4x4 keypad scanner and debouncer. |
+| `passcode/password_pio.v` | Custom Avalon-MM command/status PIO registers. |
+| `passcode/password_system.v` | Platform Designer component wrapper around the passcode core and custom PIOs. |
 
 `password.v` exposes the Linux-facing signals:
 
@@ -28,70 +30,79 @@ status_raw[7:0]  = status code
 status_raw[15:8] = entered digit count
 ```
 
-## Platform Designer Work
+## Custom PIO Component
 
-Use standard Platform Designer PIO components. Custom PIO Verilog is not needed
-for the GHRD flow.
+Use `passcode/password_system.v` as a custom Platform Designer component. This
+keeps the Linux interface close to the `MyPIO` exercise while still wrapping the
+passcode core.
 
-Add two PIO components to `soc_system.qsys`:
+The component has two Avalon-MM slave interfaces:
 
-| Component | Direction | Width | Purpose |
+| Interface | Purpose |
+| --- | --- |
+| `command_slave` | Linux writes command values, FPGA reads them. |
+| `status_slave` | FPGA publishes status, Linux reads it. |
+
+Register map:
+
+| Interface | Address | Direction | Description |
 | --- | --- | --- | --- |
-| `command_pio` | Output | 32 | Linux writes command, FPGA reads it. |
-| `status_pio` | Input | 32 | FPGA writes status, Linux reads it. |
+| `command_slave` | `0x0` | HPS write/read | `0`: none, `1`: auth, `2`: change passcode |
+| `status_slave` | `0x0` | HPS read, optional debug write | `status_raw[7:0]`: status, `status_raw[15:8]`: digit count |
+
+In Platform Designer:
+
+1. Open `soc_system.qsys`.
+2. Select `File` -> `New Component`.
+3. Add these files in the `Files` tab:
+   - `passcode/password_system.v`
+   - `passcode/password_pio.v`
+   - `passcode/password.v`
+   - `passcode/keyboard_scan.v`
+4. Set the top module to `password_system`.
+5. Click `Analyze Synthesis Files`.
+6. Create/export these conduit signals:
+   - `row[3:0]`
+   - `col[3:0]`
+   - `led[3:0]`
+7. Create two Avalon-MM slave interfaces:
+   - `command_slave`: `command_address`, `command_read`, `command_readdata`, `command_write`, `command_writedata`
+   - `status_slave`: `status_address`, `status_read`, `status_readdata`, `status_write`, `status_writedata`
+8. Associate both Avalon-MM slave interfaces with `clk` and `reset`.
+9. Save the component as `password_system`.
+10. Add `password_system` to `soc_system`.
+11. Connect both slave interfaces to the HPS lightweight bridge path, like the `MyPIO` exercise.
+12. Export the keypad/LED conduit as needed.
 
 Recommended base addresses:
 
-| Component | Base |
+| Interface | Base |
 | --- | --- |
-| `command_pio` | `0x00003000` |
-| `status_pio` | `0x00003010` |
-
-Connect both PIO slave ports to the lightweight HPS-to-FPGA bridge path, like
-the `MyPIO` exercise.
-
-Export both PIO external connections. After HDL generation, the generated
-`soc_system` module should have ports similar to:
-
-```verilog
-command_pio_external_connection_export
-status_pio_external_connection_export
-```
+| `password_system.command_slave` | `0x00003000` |
+| `password_system.status_slave` | `0x00003010` |
 
 ## Top-Level Wiring
 
-After Platform Designer regenerates `soc_system`, wire the exported PIO ports
-to the passcode core in `DE10_NANO_SoC_GHRD.v`.
+After Platform Designer regenerates `soc_system`, wire the exported keypad
+conduit ports in `DE10_NANO_SoC_GHRD.v`.
 
 Do this after HDL generation, because the `soc_system` port list changes only
-after Platform Designer exports `command_pio` and `status_pio`.
+after Platform Designer exports the `password_system` conduit.
 
-Add wires:
+The generated `soc_system` module should contain ports similar to:
 
 ```verilog
-wire [31:0] passcode_command;
-wire [31:0] passcode_status;
+password_system_0_row_export
+password_system_0_col_export
+password_system_0_led_export
 ```
 
-Connect `soc_system` ports:
+Connect those exported ports to the physical keypad pins/signals:
 
 ```verilog
-.command_pio_external_connection_export(passcode_command),
-.status_pio_external_connection_export(passcode_status),
-```
-
-Instantiate the passcode core:
-
-```verilog
-password password_inst (
-    .clk(FPGA_CLK1_50),
-    .rst_n(hps_fpga_reset_n),
-    .command(passcode_command),
-    .row(<keypad_row_signal>),
-    .col(<keypad_col_signal>),
-    .status_raw(passcode_status),
-    .led(LED[3:0])
-);
+.password_system_0_row_export(<keypad_row_signal>),
+.password_system_0_col_export(<keypad_col_signal>),
+.password_system_0_led_export(<passcode_led_signal>),
 ```
 
 Replace `<keypad_row_signal>` and `<keypad_col_signal>` with the actual GPIO

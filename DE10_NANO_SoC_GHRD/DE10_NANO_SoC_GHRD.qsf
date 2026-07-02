@@ -10,6 +10,8 @@ set_global_assignment -name PROJECT_CREATION_TIME_DATE "17:14:54 MARCH 04,2015"
 set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
 set_global_assignment -name VERILOG_FILE passcode/password.v
 set_global_assignment -name VERILOG_FILE passcode/keyboard_scan.v
+set_global_assignment -name VERILOG_FILE passcode/password_pio.v
+set_global_assignment -name VERILOG_FILE passcode/password_system.v
 #============================================================
 # CLOCK
 #============================================================
