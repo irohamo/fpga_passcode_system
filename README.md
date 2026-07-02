@@ -86,6 +86,33 @@ After Linux reads a terminal result, it acknowledges the result by writing
 `STATUS_PIO`, so the status reset is the FPGA side's job after it observes
 `COMMAND=0`.
 
+## Quartus-Side Files
+
+The current Quartus source files live under `quartus/`.
+
+| File | Purpose |
+| --- | --- |
+| `password.v` | Keypad passcode state machine. It accepts `command` and outputs `status_raw`. |
+| `keyboard_scan.v` | 4x4 keypad scanner and debouncer. |
+| `password_pio.v` | Avalon-MM PIO-style command and status registers. |
+| `password_system.v` | Wrapper that connects `password.v` to the command/status PIO modules. |
+| `password.qsf` / `password.qpf` | Quartus project files. |
+
+For Linux integration, use `password_system` as the component/wrapper that
+connects to the HPS lightweight bridge:
+
+```text
+HPS lightweight bridge -> PasswordCommandPIO -> password.command
+password.status_raw    -> PasswordStatusPIO  -> HPS lightweight bridge
+```
+
+The raw status value produced by `password.v` is:
+
+```verilog
+status_raw[7:0]  = status code
+status_raw[15:8] = entered digit count
+```
+
 ## Build
 
 Build the production command-line tool:

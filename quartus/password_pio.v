@@ -1,15 +1,11 @@
 /*
- * Passcode PIO modules for the DE10-Nano passcode system.
+ * Avalon-MM PIO-style registers for Linux/HPS communication.
  *
- * These modules are intentionally close to the provided MyPIO example:
- * each module exposes one Avalon-MM slave data register at address 0.
- *
- * Linux-side mapping:
- *   COMMAND_PIO data register -> Linux writes command, FPGA logic reads command
- *   STATUS_PIO  data register -> FPGA logic writes status, Linux reads status
+ * COMMAND: Linux writes command values, FPGA logic reads them.
+ * STATUS : FPGA logic writes status_raw, Linux reads it.
  */
 
-module PasscodeCommandPIO (
+module PasswordCommandPIO (
     input  wire        reset,
     input  wire        clk,
     input  wire [1:0]  address,
@@ -43,7 +39,7 @@ module PasscodeCommandPIO (
 
 endmodule
 
-module PasscodeStatusPIO (
+module PasswordStatusPIO (
     input  wire        reset,
     input  wire        clk,
     input  wire [1:0]  address,
@@ -64,10 +60,7 @@ module PasscodeStatusPIO (
                 status <= status_next;
             end
 
-            /*
-             * Optional HPS write support is kept for debug. The normal design
-             * should reset status from FPGA logic after command returns to 0.
-             */
+            // Optional HPS write support is useful for manual debugging.
             if (write) begin
                 case (address)
                     2'b00: status <= writedata;
