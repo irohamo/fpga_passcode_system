@@ -50,14 +50,11 @@ In Platform Designer:
    - `write`
    - `writedata`
 7. Associate `s1` with `clk` and `reset`.
-8. Create/export these conduit signals:
-   - `command[31:0]`
-   - `status_next[31:0]`
+8. Do not create extra conduit signals for this component.
 9. Save the component as `passcode_pio`.
 10. Add `passcode_pio` to `soc_system`.
 11. Connect `s1` to the HPS lightweight bridge path, like the `MyPIO` exercise.
-12. Export the `command` and `status_next` conduit so the top-level file can
-    connect it to the passcode state machine.
+12. Do not connect it to `f2sdram_only_master.master`.
 
 Recommended base address:
 
@@ -75,25 +72,9 @@ overlap the custom PIO address range.
 
 ## Top-Level Wiring
 
-After Platform Designer regenerates `soc_system`, wire the exported
-command/status conduit ports in `DE10_NANO_SoC_GHRD.v`.
-
-The generated `soc_system` module should contain ports similar to:
-
-```verilog
-passcode_pio_0_command_export
-passcode_pio_0_status_next_export
-```
-
-Connect those exported ports to the separate passcode state machine:
-
-```verilog
-.passcode_pio_0_command_export(passcode_command),
-.passcode_pio_0_status_next_export(passcode_status),
-```
-
-The keypad row/column signals should connect to the passcode state machine, not
-to `passcode_pio`.
+After Platform Designer regenerates `soc_system`, `passcode_pio` should not add
+any new top-level conduit ports. It should only appear as an HPS-visible
+Avalon-MM slave register block.
 
 ## Linux-Side Update
 

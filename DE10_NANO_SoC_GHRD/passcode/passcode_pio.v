@@ -4,9 +4,8 @@
  * address 0: COMMAND register, HPS write/read
  * address 1: STATUS register, HPS read, optional debug write
  *
- * This module is only the HPS-facing PIO part. The keypad scanner and
- * passcode state machine should live in a separate module and connect through
- * command/status_next.
+ * This module is only the HPS-facing PIO part. Keep the Platform Designer
+ * component simple: Avalon-MM signals only, with no extra conduit ports.
  */
 
 module passcode_pio (
@@ -16,15 +15,13 @@ module passcode_pio (
     input  wire        read,
     output reg  [31:0] readdata,
     input  wire        write,
-    input  wire [31:0] writedata,
-
-    output reg  [31:0] command,
-    input  wire [31:0] status_next
+    input  wire [31:0] writedata
 );
 
     localparam ADDR_COMMAND = 2'b00;
     localparam ADDR_STATUS  = 2'b01;
 
+    reg [31:0] command;
     reg [31:0] status;
 
     always @(posedge clk or posedge reset) begin
@@ -33,15 +30,13 @@ module passcode_pio (
             status  <= 32'd0;
         end
         else begin
-            status <= status_next;
-
             if (write) begin
                 case (address)
                     ADDR_COMMAND: command <= writedata;
                     ADDR_STATUS:  status <= writedata;
                     default: begin
                         command <= command;
-                        status  <= status_next;
+                        status  <= status;
                     end
                 endcase
             end

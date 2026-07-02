@@ -106,8 +106,8 @@ Wire it as:
 
 ```text
 Linux /dev/mem -> HPS lightweight bridge -> passcode_pio.s1
-passcode_pio.command -> passcode state machine
-passcode state machine -> passcode_pio.status_next
+passcode_pio.address=0 -> COMMAND register
+passcode_pio.address=1 -> STATUS register
 ```
 
 After HDL generation, copy the generated base address from `hps_0.h` into
