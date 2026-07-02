@@ -53,11 +53,10 @@ In Platform Designer:
 8. Create/export these conduit signals:
    - `row[3:0]`
    - `col[3:0]`
-   - `led[3:0]`
 9. Save the component as `passcode_pio`.
 10. Add `passcode_pio` to `soc_system`.
 11. Connect `s1` to the HPS lightweight bridge path, like the `MyPIO` exercise.
-12. Export the keypad/LED conduit as needed.
+12. Export the keypad conduit as needed.
 
 Recommended base address:
 
@@ -75,7 +74,6 @@ The generated `soc_system` module should contain ports similar to:
 ```verilog
 passcode_pio_0_row_export
 passcode_pio_0_col_export
-passcode_pio_0_led_export
 ```
 
 Connect those exported ports to the physical keypad pins/signals:
@@ -83,15 +81,10 @@ Connect those exported ports to the physical keypad pins/signals:
 ```verilog
 .passcode_pio_0_row_export(<keypad_row_signal>),
 .passcode_pio_0_col_export(<keypad_col_signal>),
-.passcode_pio_0_led_export(<passcode_led_signal>),
 ```
 
 Replace `<keypad_row_signal>` and `<keypad_col_signal>` with the actual GPIO
 signals used for the keypad.
-
-If LED0 is useful for passcode debugging, keep the existing GHRD LED assignment
-for `LED[7:1]` and drive only `LED[0]` from the passcode component, or route
-the passcode `led[3:0]` to unused GPIO/LEDs after checking for conflicts.
 
 ## Linux-Side Update
 

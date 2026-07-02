@@ -15,8 +15,7 @@ module passcode_pio (
     input  wire [31:0] writedata,
 
     input  wire [3:0]  row,
-    output wire [3:0]  col,
-    output wire [3:0]  led
+    output wire [3:0]  col
 );
 
     localparam ADDR_COMMAND        = 2'b00;
@@ -62,7 +61,6 @@ module passcode_pio (
 
     reg [3:0] status;
     reg [2:0] digit_count;
-    reg [3:0] led_value;
 
     reg [31:0] scan_cnt;
     reg [1:0]  scan_col;
@@ -94,7 +92,6 @@ module passcode_pio (
 
     assign status_next = {16'd0, 5'd0, digit_count, 4'd0, status};
     assign col = scan_out;
-    assign led = led_value;
 
     always @(posedge clk or posedge reset) begin
         if (reset) begin
@@ -408,21 +405,6 @@ module passcode_pio (
                 endcase
             end
         end
-    end
-
-    always @* begin
-        case (status)
-            WAITING_COMMANDS:   led_value = 4'b0000;
-            INPUT_PASSWORD:     led_value = 4'b0001;
-            AUTH_SUCCESS:       led_value = 4'b1111;
-            AUTH_FAIL:          led_value = 4'b0011;
-            CURRENT_PASSWORD:   led_value = 4'b1000;
-            CHANGE_NEWPASSWORD: led_value = 4'b1100;
-            CHANGE_SUCCESS:     led_value = 4'b1010;
-            CHANGE_FAIL:        led_value = 4'b0110;
-            PASSWORD_ERROR:     led_value = 4'b1001;
-            default:            led_value = 4'b0000;
-        endcase
     end
 
 endmodule
